@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ca-valencia">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tria i Temps · eina d'aula</title>
+<meta name="description" content="Tria alumnat a l'atzar sense repetir i controla el temps de les intervencions orals. Eina d'aula lliure, sense registre ni dades personals.">
+<style>
+  :root{
+    --fons:#f7f4ef; --carta:#fffdfa; --tinta:#2b2a28; --suau:#6f6a62;
+    --vora:#e2dcd2; --acc:#b8442e; --acc-fluix:#f3e2dd;
+    --verd:#3f7a52; --ambre:#c98a17;
+    --ombra:0 1px 2px rgba(43,42,40,.05), 0 8px 24px rgba(43,42,40,.07);
+    --radi:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --fons:#1a1917; --carta:#232220; --tinta:#f0ece5; --suau:#a49d92;
+           --vora:#38352f; --acc:#e0714f; --acc-fluix:#3a2620;
+           --verd:#7bb98d; --ambre:#e5b34a;
+           --ombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35); }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--fons); color:var(--tinta);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",sans-serif;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .embolcall{max-width:960px; margin:0 auto; padding:28px 20px 64px}
+  header{margin-bottom:24px}
+  h1{font-size:1.5rem; margin:0 0 4px; letter-spacing:-.02em}
+  .subtitol{color:var(--suau); font-size:.95rem; margin:0}
+  .graella{display:grid; gap:20px; grid-template-columns:1fr}
+  @media (min-width:820px){ .graella{grid-template-columns:1.15fr .85fr; align-items:start} }
+  .carta{
+    background:var(--carta); border:1px solid var(--vora); border-radius:var(--radi);
+    padding:22px; box-shadow:var(--ombra);
+  }
+  h2{font-size:.78rem; text-transform:uppercase; letter-spacing:.09em;
+     color:var(--suau); margin:0 0 16px; font-weight:600}
+  /* --- sortejador --- */
+  .pantalla{
+    display:flex; align-items:center; justify-content:center; min-height:190px;
+    border-radius:12px; background:var(--acc-fluix); margin-bottom:18px;
+    font-variant-numeric:tabular-nums; text-align:center; padding:12px;
+  }
+  .valor{font-size:clamp(3.6rem,17vw,6.5rem); font-weight:700; line-height:1;
+         letter-spacing:-.03em; color:var(--acc); word-break:break-word}
+  .valor.text{font-size:clamp(1.8rem,7vw,3.2rem)}
+  .valor.buit{font-size:1rem; font-weight:500; color:var(--suau); letter-spacing:0}
+  .girant{animation:bategar .28s ease-in-out infinite alternate}
+  @keyframes bategar{from{opacity:.45; transform:scale(.97)} to{opacity:1; transform:scale(1)}}
+  .fila{display:flex; gap:10px; flex-wrap:wrap}
+  button{
+    font:inherit; font-weight:600; cursor:pointer; border-radius:10px;
+    border:1px solid var(--vora); background:var(--carta); color:var(--tinta);
+    padding:11px 16px; transition:transform .06s ease, background .15s ease, border-color .15s ease;
+  }
+  button:hover{border-color:var(--suau)}
+  button:active{transform:translateY(1px)}
+  button:focus-visible{outline:2px solid var(--acc); outline-offset:2px}
+  button:disabled{opacity:.45; cursor:not-allowed}
+  .primari{background:var(--acc); border-color:var(--acc); color:#fff; flex:1 1 170px}
+  .primari:hover{border-color:var(--acc); filter:brightness(1.06)}
+  .gran{padding:14px 18px; font-size:1.05rem}
+  /* --- llista --- */
+  .config{margin-top:22px; padding-top:20px; border-top:1px solid var(--vora)}
+  label{display:block; font-size:.85rem; font-weight:600; margin-bottom:6px}
+  .ajuda{font-size:.8rem; color:var(--suau); margin:6px 0 0}
+  input[type=text],input[type=number],textarea{
+    width:100%; font:inherit; padding:10px 12px; border-radius:9px;
+    border:1px solid var(--vora); background:var(--fons); color:var(--tinta);
+  }
+  textarea{min-height:78px; resize:vertical}
+  input:focus,textarea:focus{outline:2px solid var(--acc); outline-offset:1px; border-color:transparent}
+  .fitxes{display:flex; flex-wrap:wrap; gap:6px; margin-top:14px}
+  .fitxa{
+    font-size:.85rem; padding:4px 10px; border-radius:999px;
+    border:1px solid var(--vora); color:var(--suau); background:var(--fons);
+  }
+  .fitxa.eixit{background:var(--acc-fluix); border-color:transparent; color:var(--acc); font-weight:600}
+  /* --- cronòmetre --- */
+  .rellotge{
+    font-size:clamp(3rem,13vw,4.6rem); font-weight:700; text-align:center;
+    font-variant-numeric:tabular-nums; letter-spacing:-.02em; margin:6px 0 4px;
+  }
+  .rellotge.avis{color:var(--ambre)}
+  .rellotge.fi{color:var(--acc)}
+  .barra{height:6px; border-radius:999px; background:var(--vora); overflow:hidden; margin-bottom:18px}
+  .barra span{display:block; height:100%; width:100%; background:var(--verd);
+              transition:width .3s linear, background .3s ease}
+  .barra span.avis{background:var(--ambre)}
+  .barra span.fi{background:var(--acc)}
+  .minuts{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px}
+  .minuts button{flex:1 1 60px; padding:9px 4px; font-size:.9rem}
+  .minuts button[aria-pressed=true]{background:var(--acc-fluix); border-color:var(--acc); color:var(--acc)}
+  footer{margin-top:34px; text-align:center; font-size:.82rem; color:var(--suau)}
+  footer a{color:var(--suau)}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="embolcall">
+  <header>
+    <h1>Tria i Temps</h1>
+    <p class="subtitol">Tria alumnat a l'atzar sense repetir i controla el temps de les intervencions orals.</p>
+  </header>
+
+  <div class="graella">
+    <!-- SORTEJADOR -->
+    <section class="carta" aria-labelledby="t-tria">
+      <h2 id="t-tria">Qui parla ara</h2>
+
+      <div class="pantalla">
+        <div class="valor buit" id="valor" role="status" aria-live="polite">Toca «Tria» per a començar</div>
+      </div>
+
+      <div class="fila">
+        <button class="primari gran" id="btn-tria">Tria</button>
+        <button id="btn-reinicia">Reinicia la ronda</button>
+      </div>
+      <p class="ajuda" id="restants"></p>
+
+      <div class="config">
+        <label for="mode-num">Llista de la classe</label>
+        <div class="fila" style="margin-bottom:12px">
+          <button id="mode-num" aria-pressed="true" style="flex:1 1 120px">Per números</button>
+          <button id="mode-noms" aria-pressed="false" style="flex:1 1 120px">Per noms</button>
+        </div>
+
+        <div id="cont-num">
+          <label for="total">Quants alumnes hi ha</label>
+          <input type="number" id="total" min="1" max="99" value="25" inputmode="numeric">
+          <p class="ajuda">Es trien números de l'1 fins ací. Cap dada personal ix del teu navegador.</p>
+        </div>
+
+        <div id="cont-noms" hidden>
+          <label for="noms">Noms, un per línia o separats per comes</label>
+          <textarea id="noms" placeholder="Aitana&#10;Bernat&#10;Clàudia"></textarea>
+          <p class="ajuda">Si projectes la pantalla davant de la classe, pensa si convé usar només els números.</p>
+        </div>
+
+        <div class="fitxes" id="fitxes" aria-label="Qui ja ha eixit"></div>
+      </div>
+    </section>
+
+    <!-- CRONÒMETRE -->
+    <section class="carta" aria-labelledby="t-temps">
+      <h2 id="t-temps">Temps d'intervenció</h2>
+
+      <div class="rellotge" id="rellotge" role="timer" aria-live="off">02:00</div>
+      <div class="barra"><span id="progres"></span></div>
+
+      <div class="minuts" role="group" aria-label="Durada">
+        <button data-min="1">1 min</button>
+        <button data-min="2" aria-pressed="true">2 min</button>
+        <button data-min="3">3 min</button>
+        <button data-min="5">5 min</button>
+        <button data-min="10">10 min</button>
+      </div>
+
+      <div class="fila">
+        <button class="primari gran" id="btn-temps">Comença</button>
+        <button id="btn-zero">Posa a zero</button>
+      </div>
+      <p class="ajuda">Quan queda un quart del temps, el rellotge es posa groc; en acabar, roig i parpelleja.</p>
+    </section>
+  </div>
+
+  <footer>
+    <p>Eina lliure per a l'aula · funciona sense connexió una vegada carregada · no guarda cap dada en cap servidor.<br>
+    Feta amb Claude · llicència <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ca">CC BY-SA 4.0</a></p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- Sortejador ---------------- */
+  var valor = document.getElementById('valor');
+  var restants = document.getElementById('restants');
+  var fitxes = document.getElementById('fitxes');
+  var total = document.getElementById('total');
+  var noms = document.getElementById('noms');
+  var btnNum = document.getElementById('mode-num');
+  var btnNoms = document.getElementById('mode-noms');
+  var contNum = document.getElementById('cont-num');
+  var contNoms = document.getElementById('cont-noms');
+  var btnTria = document.getElementById('btn-tria');
+  var btnReinicia = document.getElementById('btn-reinicia');
+
+  var mode = 'num';
+  var eixits = [];
+  var girant = false;
+
+  function desa(){
+    try{
+      localStorage.setItem('tria-i-temps', JSON.stringify({
+        mode: mode, total: total.value, noms: noms.value
+      }));
+    }catch(e){/* navegació privada: no passa res */}
+  }
+  function recupera(){
+    try{
+      var d = JSON.parse(localStorage.getItem('tria-i-temps') || '{}');
+      if(d.total) total.value = d.total;
+      if(d.noms) noms.value = d.noms;
+      if(d.mode === 'noms') canviaMode('noms');
+    }catch(e){}
+  }
+
+  function llista(){
+    if(mode === 'noms'){
+      return noms.value.split(/[\n,;]+/).map(function(s){ return s.trim(); })
+                 .filter(function(s){ return s.length; });
+    }
+    var n = Math.min(99, Math.max(1, parseInt(total.value, 10) || 0));
+    var a = [];
+    for(var i = 1; i <= n; i++) a.push(String(i));
+    return a;
+  }
+
+  function pinta(){
+    var tots = llista();
+    var queden = tots.filter(function(x){ return eixits.indexOf(x) === -1; });
+    restants.textContent = tots.length
+      ? 'Queden ' + queden.length + ' de ' + tots.length + '.'
+      : 'Afig la llista de la classe per a poder triar.';
+    fitxes.innerHTML = '';
+    tots.forEach(function(x){
+      var s = document.createElement('span');
+      s.className = 'fitxa' + (eixits.indexOf(x) > -1 ? ' eixit' : '');
+      s.textContent = x;
+      fitxes.appendChild(s);
+    });
+    btnTria.disabled = girant || queden.length === 0;
+    if(!girant && tots.length && queden.length === 0){
+      valor.className = 'valor buit';
+      valor.textContent = 'Ja han eixit tots. Reinicia la ronda.';
+    }
+  }
+
+  function tria(){
+    var queden = llista().filter(function(x){ return eixits.indexOf(x) === -1; });
+    if(!queden.length || girant) return;
+    girant = true; btnTria.disabled = true;
+    valor.className = 'valor girant' + (mode === 'noms' ? ' text' : '');
+
+    var voltes = 0;
+    var tic = setInterval(function(){
+      valor.textContent = queden[Math.floor(Math.random() * queden.length)];
+      if(++voltes >= 12){
+        clearInterval(tic);
+        var triat = queden[Math.floor(Math.random() * queden.length)];
+        eixits.push(triat);
+        valor.className = 'valor' + (mode === 'noms' ? ' text' : '');
+        valor.textContent = triat;
+        girant = false;
+        pinta();
+      }
+    }, 65);
+  }
+
+  function canviaMode(nou){
+    mode = nou;
+    var esNoms = nou === 'noms';
+    btnNum.setAttribute('aria-pressed', String(!esNoms));
+    btnNoms.setAttribute('aria-pressed', String(esNoms));
+    contNum.hidden = esNoms;
+    contNoms.hidden = !esNoms;
+    eixits = [];
+    valor.className = 'valor buit';
+    valor.textContent = 'Toca «Tria» per a començar';
+    pinta(); desa();
+  }
+
+  btnTria.addEventListener('click', tria);
+  btnReinicia.addEventListener('click', function(){
+    eixits = [];
+    valor.className = 'valor buit';
+    valor.textContent = 'Toca «Tria» per a començar';
+    pinta();
+  });
+  btnNum.addEventListener('click', function(){ canviaMode('num'); });
+  btnNoms.addEventListener('click', function(){ canviaMode('noms'); });
+  total.addEventListener('input', function(){ eixits = []; pinta(); desa(); });
+  noms.addEventListener('input', function(){ eixits = []; pinta(); desa(); });
+
+  /* ---------------- Cronòmetre ---------------- */
+  var rellotge = document.getElementById('rellotge');
+  var progres = document.getElementById('progres');
+  var btnTemps = document.getElementById('btn-temps');
+  var btnZero = document.getElementById('btn-zero');
+  var minuts = Array.prototype.slice.call(document.querySelectorAll('.minuts button'));
+
+  var durada = 120, resten = 120, corrent = false, id = null, parpelleig = null;
+
+  function ff(s){
+    var m = Math.floor(Math.abs(s) / 60), r = Math.abs(s) % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  function mostra(){
+    rellotge.textContent = ff(resten);
+    var pct = durada ? Math.max(0, resten / durada) * 100 : 0;
+    progres.style.width = pct + '%';
+    var estat = resten <= 0 ? 'fi' : (resten <= durada / 4 ? 'avis' : '');
+    rellotge.className = 'rellotge ' + estat;
+    progres.className = estat;
+  }
+
+  function atura(){
+    clearInterval(id); id = null; corrent = false;
+    btnTemps.textContent = resten > 0 ? 'Continua' : 'Comença';
+  }
+
+  function acabat(){
+    atura();
+    resten = 0; mostra();
+    btnTemps.textContent = 'Comença';
+    var visible = true, n = 0;
+    clearInterval(parpelleig);
+    parpelleig = setInterval(function(){
+      visible = !visible;
+      rellotge.style.opacity = visible ? '1' : '.25';
+      if(++n > 11){ clearInterval(parpelleig); rellotge.style.opacity = '1'; }
+    }, 380);
+  }
+
+  btnTemps.addEventListener('click', function(){
+    if(corrent){ atura(); return; }
+    if(resten <= 0) resten = durada;
+    clearInterval(parpelleig); rellotge.style.opacity = '1';
+    corrent = true; btnTemps.textContent = 'Pausa';
+    var fi = Date.now() + resten * 1000;
+    id = setInterval(function(){
+      resten = Math.round((fi - Date.now()) / 1000);
+      if(resten <= 0){ acabat(); return; }
+      mostra();
+    }, 200);
+    mostra();
+  });
+
+  btnZero.addEventListener('click', function(){
+    atura(); clearInterval(parpelleig); rellotge.style.opacity = '1';
+    resten = durada; btnTemps.textContent = 'Comença'; mostra();
+  });
+
+  minuts.forEach(function(b){
+    b.addEventListener('click', function(){
+      minuts.forEach(function(x){ x.setAttribute('aria-pressed', 'false'); });
+      b.setAttribute('aria-pressed', 'true');
+      durada = parseInt(b.dataset.min, 10) * 60;
+      atura(); clearInterval(parpelleig); rellotge.style.opacity = '1';
+      resten = durada; btnTemps.textContent = 'Comença'; mostra();
+    });
+  });
+
+  /* ---------------- Tecles ---------------- */
+  document.addEventListener('keydown', function(e){
+    if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if(e.code === 'Space'){ e.preventDefault(); tria(); }
+    if(e.key.toLowerCase() === 't'){ btnTemps.click(); }
+  });
+
+  recupera(); pinta(); mostra();
+})();
+</script>
+</body>
+</html>
